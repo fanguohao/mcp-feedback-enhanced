@@ -880,10 +880,6 @@
                     // 3. 重置表單狀態
                     self.clearFeedback();
 
-                    // 4. 強制刷新會話列表（新會話創建時）
-                    console.log('🔄 新會話創建，強制刷新會話列表');
-                    self.refreshSessionList(true);
-
                 } else {
                     console.log('🔇 音效通知未啟用，使用 window.open 策略');
 
@@ -934,12 +930,16 @@
                     }
                 }
 
-                // 4. 重置回饋狀態為等待中
+                 // 4. 強制刷新會話列表（新會話創建時）
+                    console.log('🔄 新會話創建，強制刷新會話列表');
+                    self.refreshSessionList(true);
+
+                // 5. 重置回饋狀態為等待中
                 if (self.uiManager) {
                     self.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, self.currentSessionId);
                 }
                 
-                // 5. 重新啟動會話超時計時器（如果已啟用）
+                // 6. 重新啟動會話超時計時器（如果已啟用）
                 if (self.settingsManager && self.settingsManager.get('sessionTimeoutEnabled')) {
                     console.log('🔄 新會話創建，重新啟動會話超時計時器');
                     const timeoutSettings = {
@@ -949,7 +949,7 @@
                     self.webSocketManager.updateSessionTimeoutSettings(timeoutSettings);
                 }
 
-                // 6. 檢查並啟動自動提交
+                // 7. 檢查並啟動自動提交
                 self.checkAndStartAutoSubmit();
 
                 console.log('✅ 局部更新完成，頁面已準備好接收新的回饋');
