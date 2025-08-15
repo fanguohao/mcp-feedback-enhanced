@@ -71,6 +71,41 @@ class WebUIManager:
         else:
             debug_log(f"未設定 MCP_WEB_PORT 環境變數，使用預設端口 {preferred_port}")
 
+        # 檢查環境變數 MCP_AI_CLIENT（完全參考 MCP_WEB_PORT 的處理方式）
+        # 在主线程中保存环境变量，避免子线程无法访问的问题
+        env_ai_client = os.getenv("MCP_AI_CLIENT")
+        # 別名/兼容變量：允許 is_augment_client/IS_AUGMENT_CLIENT 布林型開關
+        alias_bool = None
+        for key in ("IS_AUGMENT_CLIENT", "is_augment_client"):
+            v = os.getenv(key)
+            if v and v.lower().strip() in ("1", "true", "yes", "on"):
+                alias_bool = key
+                break
+
+        if env_ai_client:
+            self.ai_client_type = env_ai_client.lower().strip()
+            debug_log(f"使用環境變數指定的 AI 客戶端類型: {self.ai_client_type}")
+        elif alias_bool:
+            self.ai_client_type = "augment"
+            debug_log(f"檢測到 {alias_bool}=true，AI 客戶端類型: augment")
+        else:
+            # 保持默認為 cursor（不臆測客戶端）
+            self.ai_client_type = "cursor"
+            debug_log("未設定 MCP_AI_CLIENT/別名，使用預設值（cursor 模式）")
+
+        # 保存所有关键环境变量到实例中，确保子线程可以访问
+        self.env_vars = {
+            "MCP_AI_CLIENT": env_ai_client,
+            "IS_AUGMENT_CLIENT": os.getenv("IS_AUGMENT_CLIENT"),
+            "is_augment_client": os.getenv("is_augment_client"),
+            "MCP_WEB_HOST": os.getenv("MCP_WEB_HOST"),
+            "MCP_WEB_PORT": os.getenv("MCP_WEB_PORT"),
+            "MCP_DEBUG": os.getenv("MCP_DEBUG"),
+            "MCP_DESKTOP_MODE": os.getenv("MCP_DESKTOP_MODE"),
+            "MCP_LANGUAGE": os.getenv("MCP_LANGUAGE"),
+        }
+        debug_log(f"保存环境变量到实例: {self.env_vars}")
+
         # 使用增強的端口管理，測試模式下禁用自動清理避免權限問題
         auto_cleanup = os.environ.get("MCP_TEST_MODE", "").lower() != "true"
 
@@ -482,6 +517,12 @@ class WebUIManager:
         """啟動 Web 伺服器（優化版本，支援並行初始化）"""
 
         def run_server_with_retry():
+            # 在子线程中恢复环境变量
+            for key, value in self.env_vars.items():
+                if value is not None:
+                    os.environ[key] = value
+                    debug_log(f"子线程恢复环境变量: {key} = {value!r}")
+
             max_retries = 5
             retry_count = 0
             original_port = self.port

@@ -174,6 +174,7 @@ follow mcp-feedback-enhanced instructions
 | `MCP_WEB_PORT` | Web UI port | `1024-65535` | `8765` |
 | `MCP_DESKTOP_MODE` | Desktop application mode | `true`/`false` | `false` |
 | `MCP_LANGUAGE` | Force UI language | `zh-TW`/`zh-CN`/`en` | Auto-detect |
+| `MCP_AI_CLIENT` | AI client type identification | `cursor`/`augment`/custom | `cursor` |
 
 **`MCP_WEB_HOST` Explanation**:
 - `127.0.0.1` (default): Local access only, higher security
@@ -191,6 +192,17 @@ follow mcp-feedback-enhanced instructions
   3. System environment variables (LANG, LC_ALL, etc.)
   4. System default language
   5. Fallback to default language (Traditional Chinese)
+
+**`MCP_AI_CLIENT` Explanation**:
+- Used to identify the AI client type for customized response formats
+- **Default**: `cursor` (standard MCP protocol)
+- When set to `cursor`: Uses standard MCP protocol with separate text and image content (recommended for Cursor, Cline, Windsurf)
+- When set to `augment`: Returns text content with embedded base64 image data for easy JavaScript extraction (recommended for Augment)
+- When set to other values: Uses standard MCP protocol with separate text and image content
+- Augment format includes special markers for programmatic parsing:
+  - Text content: Standard feedback text
+  - Image data: Embedded as `data:mime/type;base64,<data>` with `---END_IMAGE_N---` markers
+  - Extraction-friendly format for client-side processing
 
 ### Testing Options
 ```bash
@@ -414,3 +426,9 @@ MIT License - See [LICENSE](LICENSE) file for details
 
 ---
 **🌟 Welcome to Star and share with more developers!**
+
+
+
+MCP_WEB_PORT=8765 MCP_AI_CLIENT=augment MCP_DEBUG=true \
+uv run --directory "/Users/lizhenmin/Documents/Cline/MCP/mcp-feedback-enhanced" \
+python -m mcp_feedback_enhanced 2>/tmp/mcp-fe.log

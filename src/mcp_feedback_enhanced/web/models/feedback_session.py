@@ -684,6 +684,8 @@ class WebFeedbackSession:
                 return
 
             # 使用安全的方式執行命令（不使用 shell=True）
+            # 确保环境变量正确传递给子进程
+            env = os.environ.copy()
             self.process = subprocess.Popen(
                 parsed_command,
                 shell=False,  # 安全：不使用 shell
@@ -693,6 +695,7 @@ class WebFeedbackSession:
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
+                env=env,  # 传递环境变量
             )
 
             # 註冊進程到資源管理器

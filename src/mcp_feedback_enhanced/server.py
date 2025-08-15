@@ -32,11 +32,34 @@ from typing import Annotated, Any
 
 from fastmcp import FastMCP
 from fastmcp.utilities.types import Image as MCPImage
-from mcp.types import TextContent
-from pydantic import Field
+from mcp.types import TextContent, ImageContent
+from pydantic import Field, BaseModel
 
 # 導入統一的調試功能
 from .debug import server_debug_log as debug_log
+
+# 模块级变量：在 main() 中设置，在 interactive_feedback 中使用
+_startup_ai_client_type: str = ""
+
+
+
+
+# 定義符合標準協議的ImageContent類
+class StandardImageContent(BaseModel):
+    """符合MCP標準協議的ImageContent格式"""
+    type: str = "image"
+    image: dict  # 包含 data, mimeType, name, description 字段
+
+    def dict(self, **kwargs):
+        """重写dict方法，确保返回正确的格式"""
+        return {
+            "type": self.type,
+            "image": self.image
+        }
+
+    class Config:
+        # 允许任意字段，确保兼容性
+        extra = "allow"
 
 # 導入多語系支援
 # 導入錯誤處理框架
@@ -264,12 +287,13 @@ def save_feedback_to_file(feedback_data: dict, file_path: str | None = None) -> 
     return file_path
 
 
-def create_feedback_text(feedback_data: dict) -> str:
+def create_feedback_text(feedback_data: dict, include_image_summary: bool = False) -> str:
     """
     建立格式化的回饋文字
 
     Args:
         feedback_data: 回饋資料字典
+        include_image_summary: 是否包含圖片概要（當使用標準協議格式時應設為False）
 
     Returns:
         str: 格式化後的回饋文字
@@ -284,8 +308,8 @@ def create_feedback_text(feedback_data: dict) -> str:
     if feedback_data.get("command_logs"):
         text_parts.append(f"=== 命令執行日誌 ===\n{feedback_data['command_logs']}")
 
-    # 圖片附件概要
-    if feedback_data.get("images"):
+    # 圖片附件概要（僅在明確要求時包含）
+    if feedback_data.get("images") and include_image_summary:
         images = feedback_data["images"]
         text_parts.append(f"=== 圖片附件概要 ===\n用戶提供了 {len(images)} 張圖片：")
 
@@ -360,17 +384,133 @@ def create_feedback_text(feedback_data: dict) -> str:
     return "\n\n".join(text_parts) if text_parts else "用戶未提供任何回饋內容。"
 
 
-def process_images(images_data: list[dict]) -> list[MCPImage]:
+def create_feedback_text_with_base64(feedback_data: dict) -> str:
     """
-    處理圖片資料，轉換為 MCP 圖片對象
+    為 Augment 客戶端建立簡潔的 JSON 格式
+
+    當 is_augment_client 為 true 時，圖片將保存到臨時文件並返回絕對路徑，
+    而不是 base64 數據，以便後續處理。
+
+    Args:
+        feedback_data: 回饋資料字典
+
+    Returns:
+        str: 簡潔的 JSON 字符串
+    """
+    debug_log(f"[AUGMENT_FORMAT] 開始創建簡潔 JSON 格式")
+
+    # 構建簡潔的數據結構
+    # 處理用戶回饋文本，添加適當的前綴以保持一致性
+    feedback_text = feedback_data.get("interactive_feedback", "").strip()
+    if feedback_text:
+        formatted_text = f"用戶回饋：{feedback_text}"
+    else:
+        formatted_text = "用戶未提供回饋"
+
+    # 添加命令日誌（如果有的話）
+    logs = feedback_data.get("logs", "") or feedback_data.get("command_logs", "")
+    if logs and logs.strip():
+        formatted_text += f"\n\n執行日誌：{logs.strip()}"
+
+    simple_data = {
+        "text": formatted_text,
+        "images": []
+    }
+
+    # 處理圖片數據
+    images = feedback_data.get("images", [])
+    if images:
+        debug_log(f"[AUGMENT_FORMAT] 處理 {len(images)} 張圖片")
+
+        for i, img in enumerate(images, 1):
+            try:
+                # 獲取圖片數據
+                img_data = None
+                if img.get("data"):
+                    if isinstance(img["data"], bytes):
+                        img_data = img["data"]
+                        debug_log(f"圖片 {i} 使用 bytes 數據，大小: {len(img_data)} bytes")
+                    elif isinstance(img["data"], str):
+                        # 如果是 base64 字符串，解碼為 bytes
+                        img_data = base64.b64decode(img["data"])
+                        debug_log(f"圖片 {i} 從 base64 解碼，大小: {len(img_data)} bytes")
+
+                if img_data:
+                    # 推斷圖片類型和文件擴展名
+                    name = img.get("name", f"image_{i}")
+                    if name.lower().endswith((".jpg", ".jpeg")):
+                        img_type = "jpeg"
+                        file_ext = ".jpg"
+                    elif name.lower().endswith(".gif"):
+                        img_type = "gif"
+                        file_ext = ".gif"
+                    elif name.lower().endswith(".webp"):
+                        img_type = "webp"
+                        file_ext = ".webp"
+                    else:
+                        img_type = "png"
+                        file_ext = ".png"
+
+                    # 創建臨時文件保存圖片（二進制模式）
+                    try:
+                        temp_file_path = create_temp_file(
+                            suffix=file_ext,
+                            prefix=f"augment_image_{i}_",
+                            text=False  # 二進制模式，適用於圖片文件
+                        )
+
+                        # 將圖片數據寫入臨時文件
+                        with open(temp_file_path, 'wb') as f:
+                            f.write(img_data)
+
+                        debug_log(f"圖片 {i} 已保存到臨時文件: {temp_file_path}")
+
+                        # 創建圖片對象：包含文件路徑和類型
+                        img_obj = {
+                            "path": temp_file_path,  # 使用絕對路徑替代 base64 數據
+                            "type": img_type
+                        }
+
+                        simple_data["images"].append(img_obj)
+                        debug_log(f"圖片 {i} 已添加，類型: {img_type}，路徑: {temp_file_path}")
+
+                    except Exception as file_error:
+                        debug_log(f"圖片 {i} 保存到臨時文件失敗: {file_error}")
+                        # 如果保存失敗，跳過這張圖片
+                        continue
+
+                else:
+                    debug_log(f"圖片 {i} 數據處理失敗，跳過")
+
+            except Exception as e:
+                debug_log(f"圖片 {i} 處理失敗: {e}")
+                continue
+
+    # 轉換為 JSON 字符串
+    try:
+        json_result = json.dumps(simple_data, ensure_ascii=False, separators=(',', ':'))
+        debug_log(f"[AUGMENT_FORMAT] 簡潔 JSON 創建成功，長度: {len(json_result)} 字符")
+        return json_result
+    except Exception as e:
+        debug_log(f"[AUGMENT_FORMAT] JSON 序列化失敗: {e}")
+        # 回退到最簡格式
+        return json.dumps({
+            "text": simple_data["text"],
+            "images": []
+        }, ensure_ascii=False)
+
+
+def process_images(images_data: list[dict]) -> list[dict]:
+    """
+    處理圖片資料，轉換為標準 MCP ImageContent 對象
 
     Args:
         images_data: 圖片資料列表
 
     Returns:
-        List[MCPImage]: MCP 圖片對象列表
+        List[dict]: 標準 MCP ImageContent 格式的字典列表
     """
-    mcp_images = []
+    image_contents = []
 
     for i, img in enumerate(images_data, 1):
         try:
@@ -397,20 +537,51 @@ def process_images(images_data: list[dict]) -> list[MCPImage]:
                 debug_log(f"圖片 {i} 數據為空，跳過")
                 continue
 
-            # 根據文件名推斷格式
+            # 根據文件名推斷 MIME 類型
             file_name = img.get("name", "image.png")
             if file_name.lower().endswith((".jpg", ".jpeg")):
-                image_format = "jpeg"
+                mime_type = "image/jpeg"
             elif file_name.lower().endswith(".gif"):
-                image_format = "gif"
+                mime_type = "image/gif"
+            elif file_name.lower().endswith(".webp"):
+                mime_type = "image/webp"
             else:
-                image_format = "png"  # 默認使用 PNG
+                mime_type = "image/png"  # 默認使用 PNG
 
-            # 創建 MCPImage 對象
-            mcp_image = MCPImage(data=image_bytes, format=image_format)
-            mcp_images.append(mcp_image)
+            # 將 bytes 轉換為 base64 字符串（MCP ImageContent 標準格式）
+            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
 
-            debug_log(f"圖片 {i} ({file_name}) 處理成功，格式: {image_format}")
+            # 計算文件大小
+            file_size_kb = len(image_bytes) / 1024
+            image_name = img.get("name", f"image_{i}.png")
+
+            # 使用標準MCP ImageContent類
+            # 根據Context7文檔，ImageContent應該有data和mimeType字段
+            try:
+                image_content = ImageContent(
+                    type="image",
+                    data=image_base64,  # 使用base64字符串
+                    mimeType=mime_type
+                )
+                debug_log(f"圖片 {i} 使用標準ImageContent創建成功")
+            except Exception as e:
+                debug_log(f"ImageContent創建失敗: {e}")
+                # 如果ImageContent不支持這種格式，回退到字典
+                image_content = {
+                    "type": "image",
+                    "data": image_base64,
+                    "mimeType": mime_type
+                }
+
+            image_contents.append(image_content)
+
+            debug_log(f"圖片 {i} ({image_name}) 處理成功，MIME類型: {mime_type}，base64長度: {len(image_base64)}")
+
+            # 根據image_content的類型記錄不同信息
+            if hasattr(image_content, 'mimeType'):
+                debug_log(f"圖片 {i} ImageContent對象已創建: mimeType={image_content.mimeType}")
+            elif isinstance(image_content, dict):
+                debug_log(f"圖片 {i} 字典格式已創建: mimeType={image_content.get('mimeType')}")
 
         except Exception as e:
             # 使用統一錯誤處理（不影響 JSON RPC）
@@ -421,8 +592,8 @@ def process_images(images_data: list[dict]) -> list[MCPImage]:
             )
             debug_log(f"圖片 {i} 處理失敗 [錯誤ID: {error_id}]: {e}")
 
-    debug_log(f"共處理 {len(mcp_images)} 張圖片")
-    return mcp_images
+    debug_log(f"共處理 {len(image_contents)} 張圖片")
+    return image_contents
 
 
 # ===== MCP 工具定義 =====
@@ -449,11 +620,20 @@ async def interactive_feedback(
         timeout: Timeout in seconds for waiting user feedback (default: 600 seconds)
 
     Returns:
-        list: List containing TextContent and MCPImage objects representing user feedback
+        list: List containing TextContent and ImageContent objects representing user feedback in standard MCP format
     """
     # 環境偵測
     is_remote = is_remote_environment()
     is_wsl = is_wsl_environment()
+
+    # 使用服务器启动时的固定配置（不再重新读取环境变量）
+    current_ai_client_type = _startup_ai_client_type
+    is_augment_client = current_ai_client_type == 'augment'
+
+    print(f"[SERVER_CONFIG] 当前进程PID: {os.getpid()}", file=sys.stderr)
+    print(f"[SERVER_CONFIG] 使用服务器启动时的固定配置: {current_ai_client_type!r}", file=sys.stderr)
+    print(f"[SERVER_CONFIG] is_augment_client = {is_augment_client}", file=sys.stderr)
+    print(f"[SERVER_CONFIG] 配置来源: 服务器启动时环境变量", file=sys.stderr)
 
     debug_log(f"環境偵測結果 - 遠端: {is_remote}, WSL: {is_wsl}")
     debug_log("使用介面: Web UI")
@@ -467,6 +647,22 @@ async def interactive_feedback(
         # 使用 Web 模式
         debug_log("回饋模式: web")
 
+        # 在啟動 Web UI 之前，確保 WebUIManager 能夠獲取到正確的 AI 客戶端類型
+        from .web import get_web_ui_manager
+        from .web.main import _web_ui_manager
+
+        # 如果 WebUIManager 還沒有創建，我們需要確保它能獲取到正確的 AI 客戶端類型
+        manager = get_web_ui_manager()
+
+        # 檢查 WebUIManager 是否正確讀取了 AI 客戶端類型
+        if manager.ai_client_type != current_ai_client_type:
+            debug_log(f"WebUIManager AI 客戶端類型不匹配: manager={manager.ai_client_type}, expected={current_ai_client_type}")
+            debug_log(f"強制更新 WebUIManager 的 AI 客戶端類型")
+            manager.ai_client_type = current_ai_client_type
+            # 同時更新保存的環境變數
+            manager.env_vars['MCP_AI_CLIENT'] = current_ai_client_type
+
+        # 現在啟動 Web UI
         result = await launch_web_feedback_ui(project_directory, summary, timeout)
 
         # 處理取消情況
@@ -479,31 +675,85 @@ async def interactive_feedback(
         # 建立回饋項目列表
         feedback_items = []
 
-        # 添加文字回饋
-        if (
-            result.get("interactive_feedback")
-            or result.get("command_logs")
-            or result.get("images")
-        ):
-            feedback_text = create_feedback_text(result)
-            feedback_items.append(TextContent(type="text", text=feedback_text))
-            debug_log("文字回饋已添加")
+        # 根據 AI 客戶端類型決定返回格式（使用直接读取的值确保可靠性）
+        print(f"[FINAL_CHECK] 最终判断：current_ai_client_type = '{current_ai_client_type}'", file=sys.stderr)
+        print(f"[FINAL_CHECK] 最终判断：is_augment_client = {is_augment_client}", file=sys.stderr)
+        if is_augment_client:
+            # Augment 客戶端：根據是否有圖片決定格式
+            images = result.get("images", [])
+            has_images = bool(images and any(img.get("data") for img in images))
 
-        # 添加圖片回饋
-        if result.get("images"):
-            mcp_images = process_images(result["images"])
-            # 修復 arg-type 錯誤 - 直接擴展列表
-            feedback_items.extend(mcp_images)
-            debug_log(f"已添加 {len(mcp_images)} 張圖片")
+            if has_images:
+                # 有圖片：使用 JSON 格式便於 JavaScript 提取
+                debug_log("有圖片數據，使用 JSON 格式返回")
+                json_text = create_feedback_text_with_base64(result)
+                return [TextContent(type="text", text=json_text)]
+            else:
+                # 無圖片：使用普通文本格式便於閱讀
+                debug_log("無圖片數據，使用文本格式返回")
+                text_parts = []
 
-        # 確保至少有一個回饋項目
-        if not feedback_items:
-            feedback_items.append(
-                TextContent(type="text", text="用戶未提供任何回饋內容。")
-            )
+                # 用戶回饋
+                feedback = result.get("interactive_feedback", "").strip()
+                if feedback:
+                    text_parts.append(f"用戶回饋：{feedback}")
+                else:
+                    text_parts.append("用戶未提供回饋")
 
-        debug_log(f"回饋收集完成，共 {len(feedback_items)} 個項目")
-        return feedback_items
+                # 命令日誌
+                logs = result.get("logs", "") or result.get("command_logs", "")
+                if logs and logs.strip():
+                    text_parts.append(f"執行日誌：{logs.strip()}")
+
+                combined_text = "\n\n".join(text_parts) if text_parts else "無回饋內容"
+                return [TextContent(type="text", text=combined_text)]
+        else:
+            # 標準客戶端：分別返回文字和圖片
+            debug_log("使用標準格式：文字和圖片分別傳輸")
+
+            # 添加文字回饋（不包含圖片概要，因為圖片將以標準協議格式單獨傳輸）
+            if result.get("interactive_feedback") or result.get("command_logs"):
+                feedback_text = create_feedback_text(result, include_image_summary=False)
+                feedback_items.append(TextContent(type="text", text=feedback_text))
+                debug_log("文字回饋已添加")
+
+            # 添加圖片回饋（採用cunzhi項目的成功策略：圖片優先，文本在後）
+            if result.get("images"):
+                image_contents = process_images(result["images"])
+                # 🎯 關鍵策略：圖片優先添加（模仿cunzhi項目）
+                # 直接添加圖片字典對象，不嵌套在JSON字符串中
+                feedback_items.extend(image_contents)
+                debug_log(f"已添加 {len(image_contents)} 張圖片（直接字典格式）")
+
+                # 不再添加詳細圖片信息到文本中，因為圖片數據已經以標準協議格式單獨傳輸
+                debug_log(f"圖片數據將以標準協議格式單獨傳輸，不添加到文本中")
+
+            # 確保至少有一個回饋項目
+            if not feedback_items:
+                feedback_items.append(
+                    TextContent(type="text", text="用戶未提供任何回饋內容。")
+                )
+
+            debug_log(f"回饋收集完成，原始項目數: {len(feedback_items)}")
+
+            # 標準模式：處理並轉換所有項目
+            # 將StandardImageContent對象轉換為字典
+            final_items = []
+
+            for item in feedback_items:
+                if isinstance(item, StandardImageContent):
+                    # 將StandardImageContent轉換為字典
+                    final_items.append({
+                        "type": "image",
+                        "image": item.image
+                    })
+                    debug_log(f"StandardImageContent已轉換為字典格式")
+                else:
+                    # 其他項目直接添加
+                    final_items.append(item)
+
+            debug_log(f"最終返回項目數: {len(final_items)}")
+            return final_items
 
     except Exception as e:
         # 使用統一錯誤處理，但不影響 JSON RPC 響應
@@ -514,10 +764,23 @@ async def interactive_feedback(
         )
 
         # 生成用戶友好的錯誤信息
-        user_error_msg = ErrorHandler.format_user_error(e, include_technical=False)
+        user_error_msg = ErrorHandler.format_user_error(e, include_technical=True)  # 暂时显示技术细节
         debug_log(f"回饋收集錯誤 [錯誤ID: {error_id}]: {e!s}")
+        debug_log(f"錯誤堆棧: {e.__class__.__name__}: {e}")
 
-        return [TextContent(type="text", text=user_error_msg)]
+        # 根據 AI 客戶端類型決定錯誤響應格式
+        print(f"[ERROR_FORMAT] 錯誤處理：current_ai_client_type = '{current_ai_client_type}'", file=sys.stderr)
+        print(f"[ERROR_FORMAT] 錯誤處理：is_augment_client = {is_augment_client}", file=sys.stderr)
+
+        if is_augment_client:
+            # Augment 客戶端：錯誤時使用簡單文本格式（因為沒有圖片）
+            debug_log("使用 Augment 文本格式返回錯誤信息")
+            error_text = f"❌ 操作超时\n技術細節：{user_error_msg}"
+            return [TextContent(type="text", text=error_text)]
+        else:
+            # 標準客戶端：直接返回錯誤信息
+            debug_log("使用標準格式返回錯誤信息")
+            return [TextContent(type="text", text=user_error_msg)]
 
 
 async def launch_web_feedback_ui(project_dir: str, summary: str, timeout: int) -> dict:
@@ -570,13 +833,24 @@ def get_system_info() -> str:
     is_remote = is_remote_environment()
     is_wsl = is_wsl_environment()
 
+    # 檢測 AI 客戶端類型
+    ai_client = os.getenv("MCP_AI_CLIENT", "").lower().strip()
+
     system_info = {
         "平台": sys.platform,
         "Python 版本": sys.version.split()[0],
         "WSL 環境": is_wsl,
         "遠端環境": is_remote,
         "介面類型": "Web UI",
+        "AI 客戶端": ai_client if ai_client else "未指定",
+        "Augment 模式": ai_client == "augment",
         "環境變數": {
+            "MCP_AI_CLIENT": os.getenv("MCP_AI_CLIENT"),
+            "MCP_DEBUG": os.getenv("MCP_DEBUG"),
+            "MCP_WEB_HOST": os.getenv("MCP_WEB_HOST"),
+            "MCP_WEB_PORT": os.getenv("MCP_WEB_PORT"),
+            "MCP_DESKTOP_MODE": os.getenv("MCP_DESKTOP_MODE"),
+            "MCP_LANGUAGE": os.getenv("MCP_LANGUAGE"),
             "SSH_CONNECTION": os.getenv("SSH_CONNECTION"),
             "SSH_CLIENT": os.getenv("SSH_CLIENT"),
             "DISPLAY": os.getenv("DISPLAY"),
@@ -620,6 +894,8 @@ def main():
         "on",
     )
 
+    # AI 客戶端類型現在在 WebUIManager 初始化時讀取（與 MCP_WEB_PORT 處理方式完全一致）
+
     if debug_enabled:
         debug_log("🚀 啟動互動式回饋收集 MCP 服務器")
         debug_log(f"   服務器名稱: {SERVER_NAME}")
@@ -630,9 +906,20 @@ def main():
         debug_log(f"   WSL 環境: {is_wsl_environment()}")
         debug_log(f"   桌面模式: {'啟用' if desktop_mode else '禁用'}")
         debug_log("   介面類型: Web UI")
+        debug_log("   AI 客戶端類型: 將在 WebUIManager 初始化時讀取")
         debug_log("   等待來自 AI 助手的調用...")
         debug_log("準備啟動 MCP 伺服器...")
         debug_log("調用 mcp.run()...")
+
+    # 在 MCP 服务器启动前，读取并保存服务器配置
+    global _startup_ai_client_type
+    _startup_ai_client_type = os.getenv('MCP_AI_CLIENT', 'augment').lower().strip()
+
+    # 打印启动配置到 stderr（不干扰 MCP 协议）
+    print(f"[STARTUP_CHECK] MCP_AI_CLIENT = {os.getenv('MCP_AI_CLIENT')!r}", file=sys.stderr, flush=True)
+    print(f"[STARTUP_CHECK] MCP_WEB_PORT = {os.getenv('MCP_WEB_PORT')!r}", file=sys.stderr, flush=True)
+    print(f"[STARTUP_CHECK] 当前进程PID: {os.getpid()}", file=sys.stderr, flush=True)
+    print(f"[STARTUP_CHECK] 服务器固定处理方式: {_startup_ai_client_type}", file=sys.stderr, flush=True)
 
     try:
         # 使用正確的 FastMCP API

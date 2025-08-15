@@ -174,6 +174,7 @@ pip install uv
 | `MCP_WEB_PORT` | Web UI 端口 | `1024-65535` | `8765` |
 | `MCP_DESKTOP_MODE` | 桌面應用程式模式 | `true`/`false` | `false` |
 | `MCP_LANGUAGE` | 強制指定介面語言 | `zh-TW`/`zh-CN`/`en` | 自動偵測 |
+| `MCP_AI_CLIENT` | AI 客戶端類型識別 | `cursor`/`augment`/自訂 | `cursor` |
 
 **`MCP_WEB_HOST` 說明**：
 - `127.0.0.1`（預設）：僅本地存取，安全性較高
@@ -183,7 +184,7 @@ pip install uv
 - 用於強制指定介面語言，覆蓋系統自動偵測
 - 支援的語言代碼：
   - `zh-TW`：繁體中文
-  - `zh-CN`：簡體中文  
+  - `zh-CN`：簡體中文
   - `en`：英文
 - 語言偵測優先順序：
   1. 用戶在介面中保存的語言設定（最高優先級）
@@ -191,6 +192,17 @@ pip install uv
   3. 系統環境變數（LANG、LC_ALL 等）
   4. 系統預設語言
   5. 回退到預設語言（繁體中文）
+
+**`MCP_AI_CLIENT` 說明**：
+- 用於識別 AI 客戶端類型，提供客製化的回應格式
+- **預設值**: `cursor`（標準 MCP 協定）
+- 當設定為 `cursor` 時：使用標準 MCP 協定，文字和圖片內容分別傳輸（推薦用於 Cursor、Cline、Windsurf）
+- 當設定為 `augment` 時：回傳包含嵌入式 base64 圖片資料的文字內容，便於 JavaScript 提取（推薦用於 Augment）
+- 當設定為其他值時：使用標準 MCP 協定，文字和圖片內容分別傳輸
+- Augment 格式包含特殊標記便於程式化解析：
+  - 文字內容：標準回饋文字
+  - 圖片資料：嵌入為 `data:mime/type;base64,<data>` 格式，帶有 `---END_IMAGE_N---` 標記
+  - 便於客戶端提取的格式
 
 ### 測試選項
 ```bash

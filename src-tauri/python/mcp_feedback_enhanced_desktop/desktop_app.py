@@ -210,10 +210,21 @@ class DesktopApp:
 
         debug_log(f"找到 Tauri 可執行檔案: {tauri_exe}")
 
-        # 設置環境變數
+        # 設置環境變數，确保所有关键环境变量都被传递
         env = os.environ.copy()
         env["MCP_DESKTOP_MODE"] = "true"
         env["MCP_WEB_URL"] = server_url
+
+        # 确保关键的 MCP 环境变量被传递给桌面应用
+        mcp_env_vars = [
+            "MCP_AI_CLIENT", "IS_AUGMENT_CLIENT", "is_augment_client",
+            "MCP_WEB_PORT", "MCP_WEB_HOST",
+            "MCP_DEBUG", "MCP_LANGUAGE"
+        ]
+        for var in mcp_env_vars:
+            if var in os.environ:
+                env[var] = os.environ[var]
+                debug_log(f"传递环境变量给桌面应用: {var} = {os.environ[var]!r}")
 
         # 啟動 Tauri 應用程式
         try:

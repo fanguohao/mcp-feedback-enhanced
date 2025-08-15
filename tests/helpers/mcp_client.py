@@ -5,6 +5,7 @@ MCP 客戶端模擬器 - 簡化版本
 
 import asyncio
 import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,13 @@ class SimpleMCPClient:
             # 使用正確的 uv run 命令啟動 MCP 服務器
             cmd = ["uv", "run", "python", "-m", "mcp_feedback_enhanced"]
 
+            # 確保環境變數正確傳遞
+            env = os.environ.copy()
+            if "MCP_AI_CLIENT" not in env or not env["MCP_AI_CLIENT"]:
+                env["MCP_AI_CLIENT"] = "augment"  # 測試時默認使用 augment
+            if "MCP_DEBUG" not in env:
+                env["MCP_DEBUG"] = "true"  # 測試時啟用調試
+
             self.server_process = subprocess.Popen(
                 cmd,
                 stdin=subprocess.PIPE,
@@ -39,6 +47,7 @@ class SimpleMCPClient:
                 cwd=Path.cwd(),
                 encoding="utf-8",  # 明確指定 UTF-8 編碼
                 errors="replace",  # 處理編碼錯誤
+                env=env,  # 傳遞環境變數
             )
 
             self.stdin = self.server_process.stdin
