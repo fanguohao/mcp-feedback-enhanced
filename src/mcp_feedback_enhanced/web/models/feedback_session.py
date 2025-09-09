@@ -26,6 +26,7 @@ from fastapi import WebSocket
 from ...debug import web_debug_log as debug_log
 from ...utils.error_handler import ErrorHandler, ErrorType
 from ...utils.resource_manager import get_resource_manager, register_process
+from ...utils.image_compressor import compress_image_if_needed
 from ..constants import get_message_code
 
 
@@ -54,6 +55,8 @@ class CleanupReason(Enum):
 
 # 常數定義
 MAX_IMAGE_SIZE = 1 * 1024 * 1024  # 1MB 圖片大小限制
+COMPRESSION_THRESHOLD = 500 * 1024  # 500KB 壓縮閾值（修正为500KB）
+COMPRESSION_TARGET_SIZE = 500 * 1024  # 500KB 壓縮目標大小
 SUPPORTED_IMAGE_TYPES = {
     "image/png",
     "image/jpeg",
@@ -632,16 +635,58 @@ class WebFeedbackSession:
                     debug_log(f"圖片 {img['name']} 數據為空，跳過")
                     continue
 
+                # Python 后端智能压缩处理
+                original_size = len(image_bytes)
+
+                # 检查是否需要压缩（大于500KB）
+                if original_size > COMPRESSION_THRESHOLD:
+                    debug_log(f"圖片 {img['name']} 大小 {self._format_size(original_size)} 超過閾值，開始 Python 壓縮")
+
+                    try:
+                        # 使用 Python 压缩
+                        compressed_bytes, compression_info = compress_image_if_needed(
+                            image_bytes,
+                            target_size=COMPRESSION_TARGET_SIZE,
+                            format_hint=img.get('type')
+                        )
+
+                        # 使用压缩后的数据
+                        final_bytes = compressed_bytes
+                        final_size = len(compressed_bytes)
+                        is_compressed = compression_info.get('compressed', False)
+
+                        if is_compressed:
+                            compression_ratio = compression_info.get('compression_ratio', 0)
+                            debug_log(
+                                f"圖片 {img['name']} Python 壓縮成功: {self._format_size(original_size)} → "
+                                f"{self._format_size(final_size)} (壓縮率: {compression_ratio:.1f}%)"
+                            )
+                        else:
+                            debug_log(f"圖片 {img['name']} 無需壓縮或壓縮失敗，使用原始數據")
+
+                    except Exception as e:
+                        debug_log(f"圖片 {img['name']} Python 壓縮失敗: {e}，使用原始數據")
+                        final_bytes = image_bytes
+                        final_size = original_size
+                        is_compressed = False
+                        compression_info = {}
+                else:
+                    # 无需压缩
+                    final_bytes = image_bytes
+                    final_size = original_size
+                    is_compressed = False
+                    compression_info = {}
+                    debug_log(f"圖片 {img['name']} 大小 {self._format_size(original_size)} 無需壓縮")
+
                 processed_images.append(
                     {
                         "name": img["name"],
-                        "data": image_bytes,  # 保存原始 bytes 數據
-                        "size": len(image_bytes),
+                        "data": final_bytes,  # 保存处理后的 bytes 數據
+                        "size": final_size,
+                        "compressed": is_compressed,
+                        "original_size": original_size,
+                        "compression_info": compression_info,  # 保存压缩详细信息
                     }
-                )
-
-                debug_log(
-                    f"圖片 {img['name']} 處理成功，大小: {len(image_bytes)} bytes"
                 )
 
             except Exception as e:
@@ -649,6 +694,15 @@ class WebFeedbackSession:
                 continue
 
         return processed_images
+
+    def _format_size(self, size_bytes: int) -> str:
+        """格式化文件大小"""
+        if size_bytes < 1024:
+            return f"{size_bytes} B"
+        elif size_bytes < 1024 * 1024:
+            return f"{size_bytes / 1024:.1f} KB"
+        else:
+            return f"{size_bytes / (1024 * 1024):.1f} MB"
 
     def add_log(self, log_entry: str):
         """添加命令日誌"""

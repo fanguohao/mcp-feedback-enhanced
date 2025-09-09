@@ -436,20 +436,39 @@ def create_feedback_text_with_base64(feedback_data: dict) -> str:
                         debug_log(f"圖片 {i} 從 base64 解碼，大小: {len(img_data)} bytes")
 
                 if img_data:
-                    # 推斷圖片類型和文件擴展名
+                    # 检测实际图片格式（而不是仅基于文件名）
+                    actual_format = _detect_image_format(img_data)
                     name = img.get("name", f"image_{i}")
-                    if name.lower().endswith((".jpg", ".jpeg")):
+
+                    # 根据实际格式设置类型和扩展名
+                    if actual_format.upper() in ('JPEG', 'JPG'):
                         img_type = "jpeg"
                         file_ext = ".jpg"
-                    elif name.lower().endswith(".gif"):
+                    elif actual_format.upper() == 'GIF':
                         img_type = "gif"
                         file_ext = ".gif"
-                    elif name.lower().endswith(".webp"):
+                    elif actual_format.upper() == 'WEBP':
                         img_type = "webp"
                         file_ext = ".webp"
-                    else:
+                    elif actual_format.upper() == 'PNG':
                         img_type = "png"
                         file_ext = ".png"
+                    else:
+                        # 如果无法检测格式，回退到基于文件名的推断
+                        if name.lower().endswith((".jpg", ".jpeg")):
+                            img_type = "jpeg"
+                            file_ext = ".jpg"
+                        elif name.lower().endswith(".gif"):
+                            img_type = "gif"
+                            file_ext = ".gif"
+                        elif name.lower().endswith(".webp"):
+                            img_type = "webp"
+                            file_ext = ".webp"
+                        else:
+                            img_type = "png"
+                            file_ext = ".png"
+
+                    debug_log(f"圖片 {i} 格式檢測: 實際格式={actual_format}, 設定類型={img_type}, 擴展名={file_ext}")
 
                     # 創建臨時文件保存圖片（二進制模式）
                     try:
@@ -594,6 +613,41 @@ def process_images(images_data: list[dict]) -> list[dict]:
 
     debug_log(f"共處理 {len(image_contents)} 張圖片")
     return image_contents
+
+
+def _detect_image_format(image_data: bytes) -> str:
+    """
+    检测图片的实际格式
+
+    Args:
+        image_data: 图片字节数据
+
+    Returns:
+        str: 图片格式 (PNG, JPEG, GIF, WEBP, UNKNOWN)
+    """
+    try:
+        # 检查文件头魔数
+        if image_data.startswith(b'\x89PNG\r\n\x1a\n'):
+            return 'PNG'
+        elif image_data.startswith(b'\xff\xd8\xff'):
+            return 'JPEG'
+        elif image_data.startswith(b'GIF8'):
+            return 'GIF'
+        elif len(image_data) > 12 and image_data[8:12] == b'WEBP':
+            return 'WEBP'
+        elif image_data.startswith(b'BM'):
+            return 'BMP'
+        else:
+            # 尝试使用PIL检测
+            try:
+                from PIL import Image
+                with Image.open(io.BytesIO(image_data)) as img:
+                    return img.format or 'UNKNOWN'
+            except:
+                return 'UNKNOWN'
+    except Exception as e:
+        debug_log(f"图片格式检测失败: {e}")
+        return 'UNKNOWN'
 
 
 # ===== MCP 工具定義 =====

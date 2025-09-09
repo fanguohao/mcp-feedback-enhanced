@@ -322,8 +322,9 @@
      * 添加檔案到列表
      */
     FileUploadManager.prototype.addFiles = function(files) {
+        // 僅將檔案轉為 Base64，前端不進行壓縮；壓縮交由後端處理
         const promises = files.map(file => this.fileToBase64(file));
-        
+
         const self = this;
         Promise.all(promises)
             .then(function(base64Results) {
@@ -336,25 +337,23 @@
                         data: base64,
                         timestamp: Date.now()
                     };
-                    
+
                     self.files.push(fileData);
                     console.log('✅ 檔案已添加:', file.name);
-                    
+
                     if (self.onFileAdd) {
                         self.onFileAdd(fileData);
                     }
                 });
-                
+
                 self.updateAllPreviews();
             })
             .catch(function(error) {
-                console.error('❌ 檔案處理失敗:', error);
-                const message = window.i18nManager ?
-                    window.i18nManager.t('fileUpload.processingFailed', '檔案處理失敗，請重試') :
-                    '檔案處理失敗，請重試';
-                self.showMessage(message, 'error');
+                console.error('❌ 添加檔案失敗:', error);
             });
     };
+
+    // 注意：前端不做壓縮，僅負責轉換與預覽，壓縮由後端處理
 
     /**
      * 將檔案轉換為 Base64
@@ -409,7 +408,13 @@
         const img = document.createElement('img');
         img.src = 'data:' + file.type + ';base64,' + file.data;
         img.alt = file.name;
-        img.title = file.name + ' (' + this.formatFileSize(file.size) + ')';
+
+        // 構建標題信息
+        let title = file.name + ' (' + this.formatFileSize(file.size) + ')';
+        if (file.compressed && file.originalSize) {
+            title += ' - 已壓縮，原始: ' + this.formatFileSize(file.originalSize);
+        }
+        img.title = title;
 
         // 檔案資訊
         const info = document.createElement('div');
@@ -421,7 +426,14 @@
 
         const size = document.createElement('div');
         size.className = 'image-size';
-        size.textContent = this.formatFileSize(file.size);
+
+        // 顯示壓縮信息
+        if (file.compressed && file.originalSize) {
+            size.innerHTML = this.formatFileSize(file.size) +
+                           ' <span style="color: #28a745; font-size: 0.8em;">🗜️ 已壓縮</span>';
+        } else {
+            size.textContent = this.formatFileSize(file.size);
+        }
 
         // 移除按鈕
         const removeBtn = document.createElement('button');
