@@ -99,14 +99,14 @@ sequenceDiagram
 result = await interactive_feedback(
     project_directory="./my-project",
     summary="我已完成了功能 X 的實現，請檢查代碼品質和邏輯正確性。主要變更包括：\n1. 新增錯誤處理機制\n2. 優化性能瓶頸\n3. 增加單元測試覆蓋率",
-    timeout=600  # 10 分鐘超時
+    timeout=86400  # 24 小時超時（默認值）
 )
 ```
 
 **參數說明**：
 - `project_directory`: 專案根目錄，用於命令執行上下文
 - `summary`: AI 工作摘要，向用戶說明已完成的工作
-- `timeout`: 等待用戶回饋的超時時間（秒）
+- `timeout`: 等待用戶回饋的超時時間（秒，默認 86400 秒 = 24 小時）
 
 ### 2. MCP 服務處理流程
 

@@ -1272,9 +1272,13 @@
             }
 
             // 3. 發送回饋到 AI 助手
+            // 自動在反饋後添加系統提示
+            const systemPrompt = '\n\nreply using interactive feedback after finish';
+            const finalFeedback = feedbackData.feedback + systemPrompt;
+
             const success = this.webSocketManager.send({
                 type: 'submit_feedback',
-                feedback: feedbackData.feedback,
+                feedback: finalFeedback,
                 images: feedbackData.images,
                 settings: feedbackData.settings
             });

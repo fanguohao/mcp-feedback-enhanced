@@ -224,7 +224,7 @@ mcp-feedback-enhanced web [OPTIONS]
 | `--port` | `int` | `8000` | 服務埠號 |
 | `--debug` | `bool` | `False` | 啟用調試模式 |
 | `--no-browser` | `bool` | `False` | 不自動開啟瀏覽器 |
-| `--timeout` | `int` | `600` | 預設會話超時時間（秒） |
+| `--timeout` | `int` | `86400` | 預設會話超時時間（秒，24 小時） |
 | `--audio-enabled` | `bool` | `True` | 啟用音效通知（v2.4.3 新增） |
 | `--session-retention` | `int` | `72` | 會話歷史保存時間（小時，v2.4.3 新增） |
 

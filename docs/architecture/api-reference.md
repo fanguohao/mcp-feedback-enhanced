@@ -15,7 +15,7 @@ AI 助手與用戶進行交互式回饋的核心 MCP 工具。
 async def interactive_feedback(
     project_directory: str,
     summary: str,
-    timeout: int = 600
+    timeout: int = 86400
 ) -> dict
 ```
 
@@ -25,7 +25,7 @@ async def interactive_feedback(
 |------|------|------|--------|------|
 | `project_directory` | `str` | ✅ | - | 專案目錄路徑，用於上下文顯示 |
 | `summary` | `str` | ✅ | - | AI 助手的工作摘要，向用戶說明當前狀態 |
-| `timeout` | `int` | ❌ | `600` | 等待用戶回饋的超時時間（秒） |
+| `timeout` | `int` | ❌ | `86400` | 等待用戶回饋的超時時間（秒，默認 24 小時） |
 
 #### 返回值
 ```python

@@ -1,6 +1,41 @@
+## 2025-10-21 15:45:00
+
+### 1. 修改 interactive_feedback 工具的默認超時時間
+
+**Change Type**: improvement
+
+> **Purpose**: 將 interactive_feedback 工具的默認超時時間從 10 分鐘改為 24 小時
+> **Detailed Description**:
+>   1. 修改 `src/mcp_feedback_enhanced/server.py` 第 659 行，將 timeout 默認值從 600 秒改為 86400 秒
+>   2. 更新函數文檔字符串，說明新的默認值為 24 小時
+>   3. 更新相關文檔文件中的 timeout 默認值說明
+> **Reason for Change**:
+>   - 用戶需要更長的超時時間來完成複雜的反饋和測試
+>   - 24 小時的默認值更符合實際使用場景
+> **Impact Scope**:
+>   - `src/mcp_feedback_enhanced/server.py` - 主要修改
+>   - `docs/architecture/api-reference.md` - 文檔更新
+>   - `docs/architecture/deployment-guide.md` - 文檔更新
+>   - `docs/architecture/interaction-flows.md` - 文檔更新
+> **API Changes**:
+>   - 舊：timeout 默認值 = 600 秒（10 分鐘）
+>   - 新：timeout 默認值 = 86400 秒（24 小時）
+> **Configuration Changes**: 無
+> **Performance Impact**: 無負面影響，只是改變了默認超時時間
+
+   ```
+   root
+   - src/mcp_feedback_enhanced
+    - server.py  // {type: refact} 修改 interactive_feedback 工具的默認 timeout 值
+   - docs/architecture
+    - api-reference.md  // {type: docs} 更新 API 文檔中的 timeout 默認值
+    - deployment-guide.md  // {type: docs} 更新部署指南中的 timeout 默認值
+    - interaction-flows.md  // {type: docs} 更新交互流程文檔中的 timeout 示例
+   ```
+
 ## 2025-10-21 14:30:00
 
-### 1. 修復 Augment 客戶端圖片識別功能
+### 2. 修復 Augment 客戶端圖片識別功能
 
 **Change Type**: fix
 
