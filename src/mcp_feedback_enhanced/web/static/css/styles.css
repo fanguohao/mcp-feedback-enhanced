@@ -39,7 +39,9 @@
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* 淡入動畫 */
@@ -48,8 +50,15 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* 滑入動畫 */
@@ -58,8 +67,15 @@
 }
 
 @keyframes slideIn {
-    from { transform: translateX(-20px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 /* 脈衝動畫 */
@@ -68,9 +84,17 @@
 }
 
 @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
 
 /* 工具提示 */
@@ -187,7 +211,7 @@
     .stats-panel-floating {
         transition: none;
     }
-    
+
     .stats-toggle-icon {
         transition: none;
     }
@@ -200,7 +224,7 @@
         gap: 12px;
         padding: 12px 16px;
     }
-    
+
     .stats-item-detailed {
         padding: 10px;
     }
@@ -280,7 +304,8 @@ table {
     margin-bottom: 20px;
 }
 
-th, td {
+th,
+td {
     padding: 12px;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
@@ -464,15 +489,28 @@ pre code {
     box-sizing: border-box;
 }
 
-/* 主體樣式 */
+/* HTML 根元素樣式 - 禁用頁面滾動 */
+html {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+/* 主體樣式 - 占用 100% 寬高 */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
-    min-height: 100vh;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 /* 容器樣式 */
@@ -744,11 +782,11 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.toggle-input:checked + .toggle-slider {
+.toggle-input:checked+.toggle-slider {
     background: var(--accent-color);
 }
 
-.toggle-input:checked + .toggle-slider:before {
+.toggle-input:checked+.toggle-slider:before {
     transform: translateX(26px);
 }
 
@@ -806,11 +844,11 @@ body {
     line-height: 1.4;
 }
 
-.layout-option input[type="radio"]:checked + label {
+.layout-option input[type="radio"]:checked+label {
     color: var(--accent-color);
 }
 
-.layout-option input[type="radio"]:checked + label .layout-option-title {
+.layout-option input[type="radio"]:checked+label .layout-option-title {
     color: var(--accent-color);
 }
 
@@ -1049,7 +1087,8 @@ body {
     max-width: 100%;
     overflow: hidden;
     gap: 0;
-    min-height: 0; /* 允許內容自然收縮 */
+    min-height: 0;
+    /* 允許內容自然收縮 */
 }
 
 .main-content-area {
@@ -1057,7 +1096,8 @@ body {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    min-height: 0; /* 允許內容自然收縮 */
+    min-height: 0;
+    /* 允許內容自然收縮 */
     padding: 12px;
     overflow: hidden;
     transition: all 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
@@ -1112,7 +1152,7 @@ body {
     display: none;
 }
 
-/* 分頁內容 */
+/* 分頁內容 - 占用 100% 寬高，禁用頁面滾動 */
 .tab-content {
     display: none;
     flex: 1;
@@ -1120,16 +1160,17 @@ body {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 20px;
-    overflow-y: auto;
     width: 100%;
+    height: 100%;
     max-width: 100%;
     box-sizing: border-box;
-    min-height: 0; /* 移除固定高度，使用 flex 自適應 */
+    min-height: 0;
+    overflow: hidden;
+    flex-direction: column;
 }
 
 .tab-content.active {
     display: flex;
-    flex-direction: column;
 }
 
 /* 分割器樣式（用於合併模式） */
@@ -1219,14 +1260,14 @@ body {
 }
 
 /* 上傳提示文字 */
-.image-upload-area > div:first-child {
+.image-upload-area>div:first-child {
     color: var(--text-secondary);
     font-size: 14px;
     line-height: 1.5;
     margin-bottom: 12px;
 }
 
-.image-upload-area > div:first-child small {
+.image-upload-area>div:first-child small {
     color: var(--text-secondary);
     opacity: 0.8;
     font-size: 12px;
@@ -1440,7 +1481,32 @@ h3.combined-section-title {
     margin: 0;
 }
 
+/* 合併內容容器 - 使用 Flexbox 布局 */
+.combined-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
 
+/* 合併區段 - 摘要和反饋區域 */
+.combined-section {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* 合併摘要區域 - 允許內部滾動 */
+.combined-summary {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    min-height: 0;
+}
 
 /* Combined 標籤頁提交按鈕樣式 */
 .combined-submit-btn {
@@ -1733,37 +1799,43 @@ textarea:-ms-input-placeholder,
 /* 移除舊的衝突樣式，使用下方的 VSCode 風格樣式 */
 
 /* Markdown 強調樣式 */
-#summaryContent strong, #combinedSummaryContent strong {
+#summaryContent strong,
+#combinedSummaryContent strong {
     font-weight: 600;
     color: var(--text-primary);
 }
 
-#summaryContent em, #combinedSummaryContent em {
+#summaryContent em,
+#combinedSummaryContent em {
     font-style: italic;
     color: var(--text-primary);
 }
 
 /* Markdown 刪除線樣式 */
-#summaryContent del, #summaryContent s,
-#combinedSummaryContent del, #combinedSummaryContent s {
+#summaryContent del,
+#summaryContent s,
+#combinedSummaryContent del,
+#combinedSummaryContent s {
     text-decoration: line-through;
     color: var(--text-secondary);
     opacity: 0.7;
 }
 
 /* Markdown 程式碼樣式 - 基於 marked.js 官方樣式 */
-#summaryContent code, #combinedSummaryContent code {
+#summaryContent code,
+#combinedSummaryContent code {
     padding: 0.2em 0.4em !important;
     margin: 0 !important;
     font-size: 85% !important;
     background-color: rgba(175, 184, 193, 0.2) !important;
     border-radius: 3px !important;
-    font-family: "SFMono-Regular",Consolas,"Liberation Mono",Menlo,Courier,monospace !important;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
     color: var(--text-primary) !important;
 }
 
-#summaryContent pre, #combinedSummaryContent pre {
-    font-family: "SFMono-Regular",Consolas,"Liberation Mono",Menlo,Courier,monospace !important;
+#summaryContent pre,
+#combinedSummaryContent pre {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace !important;
     padding: 16px !important;
     overflow: auto !important;
     font-size: 85% !important;
@@ -1774,7 +1846,8 @@ textarea:-ms-input-placeholder,
     border: none !important;
 }
 
-#summaryContent pre code, #combinedSummaryContent pre code {
+#summaryContent pre code,
+#combinedSummaryContent pre code {
     background: none !important;
     border: none !important;
     padding: 0 !important;
@@ -1788,7 +1861,8 @@ textarea:-ms-input-placeholder,
 /* 移除舊的列表樣式，使用下方的 VSCode 風格樣式 */
 
 /* Markdown 引用區塊樣式 */
-#summaryContent blockquote, #combinedSummaryContent blockquote {
+#summaryContent blockquote,
+#combinedSummaryContent blockquote {
     border-left: 4px solid var(--accent-color);
     margin: 1em 0;
     padding: 0.5em 1em;
@@ -1798,17 +1872,20 @@ textarea:-ms-input-placeholder,
 }
 
 /* Markdown 連結樣式 - 基於 marked.js 官方樣式 */
-#summaryContent a, #combinedSummaryContent a {
+#summaryContent a,
+#combinedSummaryContent a {
     color: #0366d6;
     text-decoration: none;
 }
 
-#summaryContent a:hover, #combinedSummaryContent a:hover {
+#summaryContent a:hover,
+#combinedSummaryContent a:hover {
     text-decoration: underline;
 }
 
 /* Markdown 水平線樣式 - 基於 marked.js 官方樣式 */
-#summaryContent hr, #combinedSummaryContent hr {
+#summaryContent hr,
+#combinedSummaryContent hr {
     border: none;
     border-top: 1px solid var(--border-color);
     margin: 24px 0;
@@ -1816,29 +1893,47 @@ textarea:-ms-input-placeholder,
 }
 
 /* 確保第一個元素沒有上邊距 */
-#summaryContent > *:first-child, #combinedSummaryContent > *:first-child {
+#summaryContent>*:first-child,
+#combinedSummaryContent>*:first-child {
     margin-top: 0;
 }
 
 /* 確保最後一個元素沒有下邊距 */
-#summaryContent > *:last-child, #combinedSummaryContent > *:last-child {
+#summaryContent>*:last-child,
+#combinedSummaryContent>*:last-child {
     margin-bottom: 0;
 }
 
 /* Markdown 內容樣式 - VSCode 風格極緊湊樣式 */
-#summaryContent, #combinedSummaryContent {
-    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol" !important;
+#summaryContent,
+#combinedSummaryContent {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
     font-size: 14px !important;
     line-height: 1.1 !important;
     word-wrap: break-word !important;
+    width: 100%;
+    overflow: visible;
+}
+
+/* 分頁模式摘要 - 允許內部滾動 */
+#summaryContent {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* 合併模式摘要 - 由父容器控制滾動 */
+#combinedSummaryContent {
+    max-height: none;
 }
 
 /* 強制覆蓋所有子元素的行高和間距 */
-#summaryContent *, #combinedSummaryContent * {
+#summaryContent *,
+#combinedSummaryContent * {
     line-height: 1.1 !important;
 }
 
-#summaryContent p, #combinedSummaryContent p {
+#summaryContent p,
+#combinedSummaryContent p {
     margin: 0 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
@@ -1848,15 +1943,24 @@ textarea:-ms-input-placeholder,
 }
 
 /* 標題樣式 - VSCode 風格含底線 */
-#summaryContent h1, #summaryContent h2, #summaryContent h3,
-#summaryContent h4, #summaryContent h5, #summaryContent h6,
-#combinedSummaryContent h1, #combinedSummaryContent h2, #combinedSummaryContent h3,
-#combinedSummaryContent h4, #combinedSummaryContent h5, #combinedSummaryContent h6 {
+#summaryContent h1,
+#summaryContent h2,
+#summaryContent h3,
+#summaryContent h4,
+#summaryContent h5,
+#summaryContent h6,
+#combinedSummaryContent h1,
+#combinedSummaryContent h2,
+#combinedSummaryContent h3,
+#combinedSummaryContent h4,
+#combinedSummaryContent h5,
+#combinedSummaryContent h6 {
     color: var(--text-primary) !important;
     font-weight: 600 !important;
 }
 
-#summaryContent h1, #combinedSummaryContent h1 {
+#summaryContent h1,
+#combinedSummaryContent h1 {
     margin: 0.3em 0 0.1em 0 !important;
     line-height: 1.1 !important;
     font-size: 1.8em !important;
@@ -1864,7 +1968,8 @@ textarea:-ms-input-placeholder,
     padding-bottom: 6px !important;
 }
 
-#summaryContent h2, #combinedSummaryContent h2 {
+#summaryContent h2,
+#combinedSummaryContent h2 {
     margin: 0.25em 0 0.08em 0 !important;
     line-height: 1.1 !important;
     font-size: 1.5em !important;
@@ -1872,28 +1977,34 @@ textarea:-ms-input-placeholder,
     padding-bottom: 4px !important;
 }
 
-#summaryContent h3, #combinedSummaryContent h3 {
+#summaryContent h3,
+#combinedSummaryContent h3 {
     margin: 0.2em 0 0.03em 0 !important;
     line-height: 1.1 !important;
     font-size: 1.3em !important;
 }
 
-#summaryContent h4, #combinedSummaryContent h4 {
+#summaryContent h4,
+#combinedSummaryContent h4 {
     margin: 0.15em 0 0.02em 0 !important;
     line-height: 1.1 !important;
     font-size: 1.1em !important;
 }
 
-#summaryContent h5, #combinedSummaryContent h5,
-#summaryContent h6, #combinedSummaryContent h6 {
+#summaryContent h5,
+#combinedSummaryContent h5,
+#summaryContent h6,
+#combinedSummaryContent h6 {
     margin: 0.1em 0 0.02em 0 !important;
     line-height: 1.1 !important;
     font-size: 1em !important;
 }
 
 /* 列表樣式 - VSCode 風格極緊湊 */
-#summaryContent ul, #combinedSummaryContent ul,
-#summaryContent ol, #combinedSummaryContent ol {
+#summaryContent ul,
+#combinedSummaryContent ul,
+#summaryContent ol,
+#combinedSummaryContent ol {
     margin: 0 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
@@ -1903,7 +2014,8 @@ textarea:-ms-input-placeholder,
     padding-bottom: 0 !important;
 }
 
-#summaryContent li, #combinedSummaryContent li {
+#summaryContent li,
+#combinedSummaryContent li {
     margin: 0 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
@@ -1914,8 +2026,10 @@ textarea:-ms-input-placeholder,
     font-size: 14px !important;
 }
 
-#summaryContent li > ul, #combinedSummaryContent li > ul,
-#summaryContent li > ol, #combinedSummaryContent li > ol {
+#summaryContent li>ul,
+#combinedSummaryContent li>ul,
+#summaryContent li>ol,
+#combinedSummaryContent li>ol {
     margin: 0 !important;
     margin-top: 0 !important;
     margin-bottom: 0 !important;
@@ -1926,40 +2040,54 @@ textarea:-ms-input-placeholder,
 }
 
 /* 強制段落後的列表緊密貼合 */
-#summaryContent p + ul, #combinedSummaryContent p + ul,
-#summaryContent p + ol, #combinedSummaryContent p + ol,
-#summaryContent h1 + ul, #combinedSummaryContent h1 + ul,
-#summaryContent h2 + ul, #combinedSummaryContent h2 + ul,
-#summaryContent h3 + ul, #combinedSummaryContent h3 + ul,
-#summaryContent h4 + ul, #combinedSummaryContent h4 + ul,
-#summaryContent h1 + ol, #combinedSummaryContent h1 + ol,
-#summaryContent h2 + ol, #combinedSummaryContent h2 + ol,
-#summaryContent h3 + ol, #combinedSummaryContent h3 + ol,
-#summaryContent h4 + ol, #combinedSummaryContent h4 + ol {
+#summaryContent p+ul,
+#combinedSummaryContent p+ul,
+#summaryContent p+ol,
+#combinedSummaryContent p+ol,
+#summaryContent h1+ul,
+#combinedSummaryContent h1+ul,
+#summaryContent h2+ul,
+#combinedSummaryContent h2+ul,
+#summaryContent h3+ul,
+#combinedSummaryContent h3+ul,
+#summaryContent h4+ul,
+#combinedSummaryContent h4+ul,
+#summaryContent h1+ol,
+#combinedSummaryContent h1+ol,
+#summaryContent h2+ol,
+#combinedSummaryContent h2+ol,
+#summaryContent h3+ol,
+#combinedSummaryContent h3+ol,
+#summaryContent h4+ol,
+#combinedSummaryContent h4+ol {
     margin-top: 0 !important;
     padding-top: 0 !important;
 }
 
-#summaryContent blockquote, #combinedSummaryContent blockquote {
+#summaryContent blockquote,
+#combinedSummaryContent blockquote {
     margin: 0.05em 0 !important;
     padding: 0.1em 0.5em !important;
     line-height: 1.1 !important;
     font-size: 14px !important;
 }
 
-#summaryContent pre, #combinedSummaryContent pre {
+#summaryContent pre,
+#combinedSummaryContent pre {
     margin: 0.05em 0 !important;
     line-height: 1.1 !important;
     font-size: 13px !important;
 }
 
-#summaryContent code, #combinedSummaryContent code {
+#summaryContent code,
+#combinedSummaryContent code {
     line-height: 1.1 !important;
     font-size: 13px !important;
 }
 
 /* Markdown 表格樣式 - 適應主題顏色 */
-#summaryContent table, #combinedSummaryContent table {
+#summaryContent table,
+#combinedSummaryContent table {
     border-spacing: 0 !important;
     border-collapse: collapse !important;
     display: table !important;
@@ -1972,26 +2100,32 @@ textarea:-ms-input-placeholder,
     background-color: var(--bg-primary) !important;
 }
 
-#summaryContent thead, #combinedSummaryContent thead {
+#summaryContent thead,
+#combinedSummaryContent thead {
     display: table-header-group !important;
 }
 
-#summaryContent tbody, #combinedSummaryContent tbody {
+#summaryContent tbody,
+#combinedSummaryContent tbody {
     display: table-row-group !important;
 }
 
-#summaryContent tr, #combinedSummaryContent tr {
+#summaryContent tr,
+#combinedSummaryContent tr {
     display: table-row !important;
     background-color: var(--bg-primary) !important;
     border-top: 1px solid var(--border-color) !important;
 }
 
-#summaryContent tr:nth-child(2n), #combinedSummaryContent tr:nth-child(2n) {
+#summaryContent tr:nth-child(2n),
+#combinedSummaryContent tr:nth-child(2n) {
     background-color: var(--bg-secondary) !important;
 }
 
-#summaryContent td, #summaryContent th,
-#combinedSummaryContent td, #combinedSummaryContent th {
+#summaryContent td,
+#summaryContent th,
+#combinedSummaryContent td,
+#combinedSummaryContent th {
     display: table-cell !important;
     padding: 4px 8px !important;
     border: 1px solid var(--border-color) !important;
@@ -2001,13 +2135,15 @@ textarea:-ms-input-placeholder,
     line-height: 1.3 !important;
 }
 
-#summaryContent th, #combinedSummaryContent th {
+#summaryContent th,
+#combinedSummaryContent th {
     font-weight: 600 !important;
     background-color: var(--bg-secondary) !important;
     border-bottom: 2px solid var(--border-color) !important;
 }
 
-#summaryContent td > *:last-child, #combinedSummaryContent td > *:last-child {
+#summaryContent td>*:last-child,
+#combinedSummaryContent td>*:last-child {
     margin-bottom: 0 !important;
 }
 
@@ -2070,9 +2206,17 @@ textarea:-ms-input-placeholder,
 }
 
 @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.6; }
-    100% { opacity: 1; }
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
 
 /* 自動執行命令設定樣式 */
@@ -2200,4 +2344,3 @@ textarea:-ms-input-placeholder,
     cursor: pointer;
     transition: all 0.3s ease;
 }
-
