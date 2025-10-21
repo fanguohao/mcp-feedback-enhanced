@@ -1161,7 +1161,6 @@ body {
     border-radius: 8px;
     padding: 20px;
     width: 100%;
-    height: 100%;
     max-width: 100%;
     box-sizing: border-box;
     min-height: 0;
@@ -1174,8 +1173,9 @@ body {
     display: flex;
 }
 
-/* 合併模式頁籤 - 禁用滾動 */
+/* 合併模式頁籤 - 禁用滾動，固定高度 */
 #tab-combined {
+    height: 100%;
     overflow: hidden !important;
 }
 
