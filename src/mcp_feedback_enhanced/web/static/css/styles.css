@@ -1165,12 +1165,18 @@ body {
     max-width: 100%;
     box-sizing: border-box;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     flex-direction: column;
 }
 
 .tab-content.active {
     display: flex;
+}
+
+/* 合併模式頁籤 - 禁用滾動 */
+#tab-combined {
+    overflow: hidden !important;
 }
 
 /* 分割器樣式（用於合併模式） */
