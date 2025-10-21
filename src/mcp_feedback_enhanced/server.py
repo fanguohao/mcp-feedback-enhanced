@@ -388,8 +388,9 @@ def create_feedback_text_with_base64(feedback_data: dict) -> str:
     """
     為 Augment 客戶端建立簡潔的 JSON 格式
 
-    當 is_augment_client 為 true 時，圖片將保存到臨時文件並返回絕對路徑，
-    而不是 base64 數據，以便後續處理。
+    當 is_augment_client 為 true 時，圖片將嵌入為 base64 數據到文本中，
+    格式為 `data:mime/type;base64,<data>` 並帶有 `---END_IMAGE_N---` 標記，
+    便於 JavaScript 提取和處理。
 
     Args:
         feedback_data: 回饋資料字典
@@ -440,62 +441,57 @@ def create_feedback_text_with_base64(feedback_data: dict) -> str:
                     actual_format = _detect_image_format(img_data)
                     name = img.get("name", f"image_{i}")
 
-                    # 根据实际格式设置类型和扩展名
+                    # 根据实际格式设置类型和 MIME 类型
                     if actual_format.upper() in ('JPEG', 'JPG'):
                         img_type = "jpeg"
-                        file_ext = ".jpg"
+                        mime_type = "image/jpeg"
                     elif actual_format.upper() == 'GIF':
                         img_type = "gif"
-                        file_ext = ".gif"
+                        mime_type = "image/gif"
                     elif actual_format.upper() == 'WEBP':
                         img_type = "webp"
-                        file_ext = ".webp"
+                        mime_type = "image/webp"
                     elif actual_format.upper() == 'PNG':
                         img_type = "png"
-                        file_ext = ".png"
+                        mime_type = "image/png"
                     else:
                         # 如果无法检测格式，回退到基于文件名的推断
                         if name.lower().endswith((".jpg", ".jpeg")):
                             img_type = "jpeg"
-                            file_ext = ".jpg"
+                            mime_type = "image/jpeg"
                         elif name.lower().endswith(".gif"):
                             img_type = "gif"
-                            file_ext = ".gif"
+                            mime_type = "image/gif"
                         elif name.lower().endswith(".webp"):
                             img_type = "webp"
-                            file_ext = ".webp"
+                            mime_type = "image/webp"
                         else:
                             img_type = "png"
-                            file_ext = ".png"
+                            mime_type = "image/png"
 
-                    debug_log(f"圖片 {i} 格式檢測: 實際格式={actual_format}, 設定類型={img_type}, 擴展名={file_ext}")
+                    debug_log(f"圖片 {i} 格式檢測: 實際格式={actual_format}, 設定類型={img_type}, MIME={mime_type}")
 
-                    # 創建臨時文件保存圖片（二進制模式）
+                    # 將圖片數據編碼為 base64
                     try:
-                        temp_file_path = create_temp_file(
-                            suffix=file_ext,
-                            prefix=f"augment_image_{i}_",
-                            text=False  # 二進制模式，適用於圖片文件
-                        )
+                        img_base64 = base64.b64encode(img_data).decode('utf-8')
+                        debug_log(f"圖片 {i} Base64 編碼成功，長度: {len(img_base64)} 字符")
 
-                        # 將圖片數據寫入臨時文件
-                        with open(temp_file_path, 'wb') as f:
-                            f.write(img_data)
+                        # 將 base64 圖片數據嵌入到文本中
+                        formatted_text += f"\n\n[圖片 {i}]\ndata:{mime_type};base64,{img_base64}\n---END_IMAGE_{i}---"
 
-                        debug_log(f"圖片 {i} 已保存到臨時文件: {temp_file_path}")
-
-                        # 創建圖片對象：包含文件路徑和類型
+                        # 創建圖片對象：包含 base64 數據和類型
                         img_obj = {
-                            "path": temp_file_path,  # 使用絕對路徑替代 base64 數據
-                            "type": img_type
+                            "data": f"data:{mime_type};base64,{img_base64}",
+                            "type": mime_type,
+                            "name": name
                         }
 
                         simple_data["images"].append(img_obj)
-                        debug_log(f"圖片 {i} 已添加，類型: {img_type}，路徑: {temp_file_path}")
+                        debug_log(f"圖片 {i} 已添加，類型: {img_type}，Base64 長度: {len(img_base64)}")
 
-                    except Exception as file_error:
-                        debug_log(f"圖片 {i} 保存到臨時文件失敗: {file_error}")
-                        # 如果保存失敗，跳過這張圖片
+                    except Exception as encode_error:
+                        debug_log(f"圖片 {i} Base64 編碼失敗: {encode_error}")
+                        # 如果編碼失敗，跳過這張圖片
                         continue
 
                 else:
@@ -505,6 +501,9 @@ def create_feedback_text_with_base64(feedback_data: dict) -> str:
                 debug_log(f"圖片 {i} 處理失敗: {e}")
                 continue
 
+    # 更新 simple_data 中的文本（已包含嵌入的圖片數據）
+    simple_data["text"] = formatted_text
+
     # 轉換為 JSON 字符串
     try:
         json_result = json.dumps(simple_data, ensure_ascii=False, separators=(',', ':'))
@@ -512,9 +511,9 @@ def create_feedback_text_with_base64(feedback_data: dict) -> str:
         return json_result
     except Exception as e:
         debug_log(f"[AUGMENT_FORMAT] JSON 序列化失敗: {e}")
-        # 回退到最簡格式
+        # 回退到最簡格式（只返回文本，不包含圖片）
         return json.dumps({
-            "text": simple_data["text"],
+            "text": formatted_text,
             "images": []
         }, ensure_ascii=False)
 
@@ -967,10 +966,26 @@ def main():
 
     # 在 MCP 服务器启动前，读取并保存服务器配置
     global _startup_ai_client_type
-    _startup_ai_client_type = os.getenv('MCP_AI_CLIENT', 'augment').lower().strip()
+
+    # 首先檢查 MCP_AI_CLIENT
+    env_ai_client = os.getenv('MCP_AI_CLIENT', '').lower().strip()
+
+    # 如果沒有設置，檢查別名（支持 is_augment_client 和 IS_AUGMENT_CLIENT）
+    if not env_ai_client:
+        for key in ("IS_AUGMENT_CLIENT", "is_augment_client"):
+            v = os.getenv(key)
+            if v and v.lower().strip() in ("1", "true", "yes", "on"):
+                env_ai_client = "augment"
+                debug_log(f"檢測到 {key}=true，AI 客戶端類型: augment")
+                break
+
+    # 使用檢測到的值或默認值
+    _startup_ai_client_type = env_ai_client or 'augment'
 
     # 打印启动配置到 stderr（不干扰 MCP 协议）
     print(f"[STARTUP_CHECK] MCP_AI_CLIENT = {os.getenv('MCP_AI_CLIENT')!r}", file=sys.stderr, flush=True)
+    print(f"[STARTUP_CHECK] IS_AUGMENT_CLIENT = {os.getenv('IS_AUGMENT_CLIENT')!r}", file=sys.stderr, flush=True)
+    print(f"[STARTUP_CHECK] is_augment_client = {os.getenv('is_augment_client')!r}", file=sys.stderr, flush=True)
     print(f"[STARTUP_CHECK] MCP_WEB_PORT = {os.getenv('MCP_WEB_PORT')!r}", file=sys.stderr, flush=True)
     print(f"[STARTUP_CHECK] 当前进程PID: {os.getpid()}", file=sys.stderr, flush=True)
     print(f"[STARTUP_CHECK] 服务器固定处理方式: {_startup_ai_client_type}", file=sys.stderr, flush=True)
