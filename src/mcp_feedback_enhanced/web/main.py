@@ -1138,7 +1138,7 @@ def get_web_ui_manager() -> WebUIManager:
 
 
 async def launch_web_feedback_ui(
-    project_directory: str, summary: str, timeout: int = 600
+    project_directory: str, summary: str, timeout: int = 86400
 ) -> dict:
     """
     啟動 Web 回饋介面並等待用戶回饋 - 重構為使用根路徑
@@ -1146,7 +1146,7 @@ async def launch_web_feedback_ui(
     Args:
         project_directory: 專案目錄路徑
         summary: AI 工作摘要
-        timeout: 超時時間（秒）
+        timeout: 超時時間（秒，默認 86400 秒 = 24 小時）
 
     Returns:
         dict: 回饋結果，包含 logs、interactive_feedback 和 images
