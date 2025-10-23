@@ -489,28 +489,24 @@ pre code {
     box-sizing: border-box;
 }
 
-/* HTML 根元素樣式 - 禁用頁面滾動 */
+/* HTML 根元素樣式 */
 html {
     width: 100%;
-    height: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
 }
 
-/* 主體樣式 - 占用 100% 寬高 */
+/* 主體樣式 */
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.6;
     width: 100%;
-    height: 100%;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
 }
 
 /* 容器樣式 */
@@ -520,13 +516,9 @@ body {
     padding: 12px;
     background: var(--bg-primary);
     color: var(--text-primary);
-    height: 100%;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    overflow-y: auto;
-    /* 允許頁面縱向滾動 */
-    overflow-x: hidden;
 }
 
 /* 頭部樣式 */
@@ -1096,14 +1088,9 @@ body {
 }
 
 .main-content-area {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    min-width: 0;
-    min-height: 0;
-    /* 允許內容自然收縮 */
     padding: 12px;
-    overflow: visible;
     transition: all 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
     background: var(--bg-primary);
     border-radius: 8px 0 0 0;
@@ -1157,7 +1144,7 @@ body {
     display: none;
 }
 
-/* 分頁內容 - 根據內容自動調整高度 */
+/* 分頁內容 */
 .tab-content {
     display: none;
     background: var(--bg-secondary);
@@ -1167,20 +1154,11 @@ body {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
-    overflow-y: auto;
-    overflow-x: hidden;
     flex-direction: column;
 }
 
 .tab-content.active {
     display: flex;
-}
-
-/* 合併模式頁籤 - 禁用滾動，固定高度 */
-#tab-combined {
-    flex: 1;
-    height: 100%;
-    overflow: hidden !important;
 }
 
 /* 分割器樣式（用於合併模式） */
