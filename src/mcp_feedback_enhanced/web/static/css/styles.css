@@ -1156,7 +1156,7 @@ body {
     display: none;
 }
 
-/* 分頁內容 - 占用 100% 寬高，禁用頁面滾動 */
+/* 分頁內容 - 根據內容自動調整高度 */
 .tab-content {
     display: none;
     flex: 1;
@@ -1171,7 +1171,6 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
     flex-direction: column;
-    height: 100%;
 }
 
 .tab-content.active {
@@ -1182,6 +1181,16 @@ body {
 #tab-combined {
     height: 100%;
     overflow: hidden !important;
+}
+
+/* 其他頁籤 - 允許滾動 */
+#tab-settings,
+#tab-command,
+#tab-sessions,
+#tab-summary,
+#tab-about {
+    height: auto;
+    overflow-y: auto !important;
 }
 
 /* 分割器樣式（用於合併模式） */
