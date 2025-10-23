@@ -524,7 +524,9 @@ body {
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow-y: auto;
+    /* 允許頁面縱向滾動 */
+    overflow-x: hidden;
 }
 
 /* 頭部樣式 */
